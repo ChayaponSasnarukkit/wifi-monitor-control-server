@@ -1,7 +1,7 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Enum, ForeignKey
 from sqlalchemy.orm import relationship
-from database import Base
+from models.database import Base
 
 class Scenario(Base):
     __tablename__ = "scenarios"
@@ -30,7 +30,7 @@ class Simulation(Base):
     
     scenario_id = Column(Integer, ForeignKey("scenarios.scenario_id", ondelete="CASCADE"))
     
-    scenario = relationship("Scenario", back_populates="simulatons")
+    scenario = relationship("Scenario", back_populates="simulations")
 
 
 class NodeConfiguration(Base):
@@ -42,12 +42,15 @@ class NodeConfiguration(Base):
     network_ssid = Column(String, nullable=False)
     scenario_id = Column(Integer, ForeignKey("scenarios.scenario_id", ondelete="CASCADE"))
     
-    # only for ap [null if client]
-    tx_power = Column(Integer, nullable=True) # have default managed by application
+    # group all to 1 attribute => simulation_data
+    simulation_data = Column(JSON, nullable=False)
     
-    # only for client [null if ap]
-    simulation_type = Column(String, nullable=True) # validate the request [must have if mode==client]
-    simulation_detail = Column(String, nullable=True) # have default for each type managed by application
+    # # only for ap [null if client]
+    # tx_power = Column(Integer, nullable=True) # have default managed by application
+    
+    # # only for client [null if ap]
+    # simulation_type = Column(String, nullable=True) # validate the request [must have if mode==client]
+    # simulation_detail = Column(String, nullable=True) # have default for each type managed by application
     
     # for future use
     is_active = Column(Boolean, nullable=False, default=False)
