@@ -20,4 +20,10 @@ class ScenarioRequest(BaseModel):
             self.target_ap_ssid = None
             self.target_ap_password = None
             
+class ScenarioListResponse(BaseModel):
+    scenario_name: str
+    is_using_target_ap: bool
+    class Config():
+        from_attributes = True    
+            
     
