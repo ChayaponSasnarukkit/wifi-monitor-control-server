@@ -18,10 +18,14 @@ async def create_new_scenario(db_session: DBSessionDep, request_body: ScenarioRe
 async def list_scenarios(db_session: DBSessionDep, page_size: Optional[int] = 10, page: Optional[int] = 1, search: Optional[str] = ""):
     return (await scenario_services.list_scenarios(db_session, page_size, page, search))
 
+@router.get("/{scenario_id}", status_code=200)
+async def get_scenario(db_session: DBSessionDep, scenario_id: int):
+    return (await scenario_services.get_scenario(db_session, scenario_id))
+
 @router.patch("/{scenario_id}", status_code=200)
 async def update_scenario(db_session: DBSessionDep, scenario_id: int, request_body: ScenarioRequest):
     return (await scenario_services.update_scenario(db_session, request_body, scenario_id))
 
 @router.delete("/{scenario_id}", status_code=200)
-async def update_scenario(db_session: DBSessionDep, scenario_id: int):
+async def delete_scenario(db_session: DBSessionDep, scenario_id: int):
     return (await scenario_services.delete_scenario(db_session, scenario_id))

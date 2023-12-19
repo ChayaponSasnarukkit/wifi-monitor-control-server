@@ -29,6 +29,19 @@ async def list_scenarios(db_session: AsyncSession, page_size: int, page: int, se
     
     return scenarios
 
+async def get_scenario(db_session: AsyncSession, scenario_id: int):
+    # query scenario
+    scenario = (
+        await db_session.scalars(
+            select(Scenario)
+            .where(Scenario.scenario_id==scenario_id)
+            .limit(1)
+        )
+    ).first()
+    if not scenario:
+        raise HTTPException(404, "scenario not found")
+    return scenario
+
 async def update_scenario(db_session: AsyncSession, request_body: ScenarioRequest, scenario_id: int):
     # validate request
     request_body.validate_target_ap()
