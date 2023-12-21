@@ -79,3 +79,12 @@ class NodeConfigRequest(BaseModel):
             return self.model_dump(exclude_unset=True)
         else:
             raise HTTPException(400, "network_mode must be client or ap only.")
+        
+class NodeConfigList(BaseModel):
+    id: int
+    control_ip_addr: str
+    alias_name: str
+    network_mode: NetworkModeEnum # ap, client
+    network_ssid: str
+    class Config():
+        from_attributes = True 
