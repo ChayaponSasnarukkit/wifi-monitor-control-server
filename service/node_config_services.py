@@ -84,3 +84,17 @@ async def get_node_config(db_session: AsyncSession, node_config_id: int):
     if not node_config:
         raise HTTPException(404, "node_config not found")
     return node_config
+
+async def delete_node_config(db_session: AsyncSession, node_config_id: int):
+    node_config = (
+        await db_session.scalars(
+            select(NodeConfiguration)
+            .where(NodeConfiguration.id==node_config_id)
+            .limit(1)
+        )
+    ).first()
+    if not node_config:
+        raise HTTPException(404, "node_config not found")
+    await db_session.delete(node_config)
+    await db_session.commit()
+    return {"message": "done"}

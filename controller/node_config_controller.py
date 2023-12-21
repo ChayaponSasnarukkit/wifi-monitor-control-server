@@ -19,9 +19,13 @@ async def list_node_configs(db_session: DBSessionDep, scenario_id: int, page_siz
     return (await node_config_services.list_node_configs(db_session, scenario_id, page_size, page, search))
 
 @router.get("/{node_config_id}", status_code=200)
-async def update_scenario(db_session: DBSessionDep, scenario_id: int, node_config_id: int):
+async def get_node_config(db_session: DBSessionDep, scenario_id: int, node_config_id: int):
     return (await node_config_services.get_node_config(db_session, node_config_id))
 
 @router.patch("/{node_config_id}", status_code=200)
-async def update_scenario(db_session: DBSessionDep, scenario_id: int, node_config_id: int, request_body: NodeConfigRequest):
+async def update_node_config(db_session: DBSessionDep, scenario_id: int, node_config_id: int, request_body: NodeConfigRequest):
     return (await node_config_services.update_node_config(db_session, node_config_id, request_body))
+
+@router.delete("/{node_config_id}", status_code=200)
+async def delete_node_config(db_session: DBSessionDep, scenario_id: int, node_config_id: int):
+    return (await node_config_services.delete_node_config(db_session, node_config_id))
