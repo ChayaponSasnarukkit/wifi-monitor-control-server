@@ -32,18 +32,21 @@ class Simulation(Base):
     
     scenario = relationship("Scenario", back_populates="simulations")
 
+class NetworkModeEnum(enum.Enum):
+    ap = "ap"
+    client ="client"
 
 class NodeConfiguration(Base):
     __tablename__ = "node_configs"
     id = Column(Integer, primary_key=True, index=True)
     # required
     control_ip_addr = Column(String, nullable=False)
-    network_mode = Column(String, nullable=False)
+    alias_name = Column(String, nullable=False)
+    network_mode = Column(Enum(NetworkModeEnum), nullable=False)
     network_ssid = Column(String, nullable=False)
     scenario_id = Column(Integer, ForeignKey("scenarios.scenario_id", ondelete="CASCADE"))
-    
     # group all to 1 attribute => simulation_data
-    simulation_data = Column(JSON, nullable=False)
+    simulation_detail = Column(JSON, nullable=False)
     
     # # only for ap [null if client]
     # tx_power = Column(Integer, nullable=True) # have default managed by application
