@@ -29,13 +29,15 @@ class ScenarioListResponse(BaseModel):
             
 DEFAULT_DETER = {
     "simulation_type": "deterministic",
-    "average_interval_time": 300,
+    "timeout": 300,
+    "average_interval_time": 10, #ms
     "average_packet_size": 128,
 }
     
 DEFAULT_WEB = {
     "simulation_type": "web_application",
-    "average_interval_time": 300,
+    "timeout": 300,
+    "average_interval_time": 10000, #lambda 10 sec
     "average_packet_size": 1024,
     "average_new_page_packet_size": 2048,
     "probability_of_load_new_page": 30,
@@ -43,6 +45,7 @@ DEFAULT_WEB = {
 
 DEFAULT_FILE = {
     "simulation_type": "file_transfer",
+    "timeout": 300,
     "average_packet_size": 1048576, #this will mean file size = 10 MB
 }
 
@@ -75,7 +78,7 @@ class NodeConfigRequest(BaseModel):
                     raise HTTPException(400, f"options {key} is not valid for simulation type {self.simulation_detail['simulation_type']}")
             for key in default_detail:
                 if key not in self.simulation_detail:
-                    self.simulation_detail[key] = self.default_detail[key] # use default
+                    self.simulation_detail[key] = default_detail[key] # use default
             return self.model_dump(exclude_unset=True)
         else:
             raise HTTPException(400, "network_mode must be client or ap only.")

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, Enum, ForeignKey
+from sqlalchemy import UniqueConstraint, Column, Integer, String, Boolean, DateTime, JSON, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from models.database import Base
 
@@ -59,6 +59,10 @@ class NodeConfiguration(Base):
     is_active = Column(Boolean, nullable=False, default=False)
     
     scenario = relationship("Scenario", back_populates="node_configs")
+
+    __table_args__ = (
+        UniqueConstraint('scenario_id', 'control_ip_addr', name='unique_control_ip_constraint'),
+    )
 
     # NOTE 1:
     """
