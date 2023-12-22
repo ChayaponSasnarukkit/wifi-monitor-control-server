@@ -1,5 +1,6 @@
 from models.models import Scenario, Simulation, NodeConfiguration
 from models.schemas import NodeConfigRequest
+from utils.utils import parse_network_from_node_config
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
@@ -98,3 +99,24 @@ async def delete_node_config(db_session: AsyncSession, node_config_id: int):
     await db_session.delete(node_config)
     await db_session.commit()
     return {"message": "done"}
+
+async def preview_node_configs(db_session: AsyncSession, scenario_id: int):
+    scenario = (
+        await db_session.scalars(
+            select(Scenario)
+            .where(Scenario.scenario_id==scenario_id)
+            .limit(1)
+        )
+    ).first()
+    if not scenario:
+        raise HTTPException(404, "scenario not found")
+    node_configs = (
+        await db_session.scalars(
+            select(NodeConfiguration)
+            .where(
+                NodeConfiguration.scenario==scenario
+            )
+        )
+    ).all()
+    
+    return parse_network_from_node_config(node_configs, scenario.target_ap_ssid) if scenario.is_using_target_ap else parse_network_from_node_config(node_configs, "")
