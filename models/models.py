@@ -36,6 +36,10 @@ class NetworkModeEnum(enum.Enum):
     ap = "ap"
     client ="client"
 
+class RadioModeEnum(enum.Enum):
+    radio0 = "5G"
+    radio1 ="2.4G"
+
 class NodeConfiguration(Base):
     __tablename__ = "node_configs"
     id = Column(Integer, primary_key=True, index=True)
@@ -49,7 +53,8 @@ class NodeConfiguration(Base):
     simulation_detail = Column(JSON, nullable=False)
     
     # # only for ap [null if client]
-    # tx_power = Column(Integer, nullable=True) # have default managed by application
+    radio = Column(Enum(RadioModeEnum), nullable=True)
+    tx_power = Column(Integer, nullable=True) # have default managed by application
     
     # # only for client [null if ap]
     # simulation_type = Column(String, nullable=True) # validate the request [must have if mode==client]

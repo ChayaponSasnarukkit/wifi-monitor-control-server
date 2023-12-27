@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from fastapi import HTTPException
 from typing import List, Optional
-from models.models import Scenario, Simulation, NodeConfiguration, NetworkModeEnum
+from models.models import Scenario, Simulation, NodeConfiguration, RadioModeEnum, NetworkModeEnum
 
 class ScenarioRequest(BaseModel):
     scenario_name: str
@@ -59,6 +59,8 @@ class NodeConfigRequest(BaseModel):
     alias_name: Optional[str] = None
     network_mode: NetworkModeEnum # ap, client
     network_ssid: str
+    radio: Optional[RadioModeEnum] = None
+    tx_power: Optional[int] = None
     simulation_detail: Optional[dict] = None # will be ignore if mode==AP
     # (required when using client mode)
     

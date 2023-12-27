@@ -4,6 +4,7 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
+    
 
 def parse_network_from_node_config(node_configs: List[NodeConfiguration], target_ap_ssid: str) -> dict:
     enable_to_run = True
@@ -20,7 +21,9 @@ def parse_network_from_node_config(node_configs: List[NodeConfiguration], target
         if node.network_mode == NetworkModeEnum.ap:
             network_info[node.network_ssid]["aps"][node.control_ip_addr] = {
                 "alias_name": node.alias_name,
-                "timeout": 0,
+                "tx_power": node.tx_power if node.tx_power is not None else 20,
+                "radio": node.radio if node.radio is not None else "5G",
+                "timeout": 0 if len(network_info[node.network_ssid]["clients"]) == 0 else max([network_info[node.network_ssid]["clients"][client]["timeout"] for client in network_info[node.network_ssid]["clients"]]),
                 "sever_types": [],
             }
         else:
