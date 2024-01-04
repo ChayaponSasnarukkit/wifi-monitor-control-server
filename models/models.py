@@ -3,6 +3,14 @@ from sqlalchemy import UniqueConstraint, Column, Integer, String, Boolean, DateT
 from sqlalchemy.orm import relationship
 from models.database import Base
 
+class NetworkModeEnum(enum.Enum):
+    ap = "ap"
+    client ="client"
+
+class RadioModeEnum(enum.Enum):
+    radio0 = "5G"
+    radio1 ="2.4G"
+
 class Scenario(Base):
     __tablename__ = "scenarios"
     scenario_id = Column(Integer, primary_key=True, index=True)
@@ -13,6 +21,7 @@ class Scenario(Base):
     is_using_target_ap = Column(Boolean, nullable=False, default=False)
     target_ap_ssid = Column(String, nullable=True)
     target_ap_password = Column(String, nullable=True)
+    target_ap_radio = Column(Enum(RadioModeEnum), nullable=True)
     
     node_configs = relationship("NodeConfiguration", back_populates="scenario")
     simulations = relationship("Simulation", back_populates="scenario")
@@ -22,23 +31,16 @@ class Simulation(Base):
     id = Column(Integer, primary_key=True, index=True)
     # required
     title = Column(String, nullable=False) # default=id
-    data_location = Column(String, nullable=False)
-    scenario_snapshot = Column(String, nullable=False) # ป้องกันการเปลี่ยนแปลง scenario ในอนาคตแล้วงง
+    scenario_snapshot = Column(JSON, nullable=False) # ป้องกันการเปลี่ยนแปลง scenario ในอนาคตแล้วงง
     state = Column(String, nullable=False, default="running")
     state_message = Column(String, nullable=False, default="")
+    simulation_data = Column(JSON, nullable=False, default={})
     created_at = Column(DateTime, nullable=False)
     
     scenario_id = Column(Integer, ForeignKey("scenarios.scenario_id", ondelete="CASCADE"))
     
     scenario = relationship("Scenario", back_populates="simulations")
 
-class NetworkModeEnum(enum.Enum):
-    ap = "ap"
-    client ="client"
-
-class RadioModeEnum(enum.Enum):
-    radio0 = "5G"
-    radio1 ="2.4G"
 
 class NodeConfiguration(Base):
     __tablename__ = "node_configs"
@@ -54,11 +56,7 @@ class NodeConfiguration(Base):
     
     # # only for ap [null if client]
     radio = Column(Enum(RadioModeEnum), nullable=True)
-    tx_power = Column(Integer, nullable=True) # have default managed by application
-    
-    # # only for client [null if ap]
-    # simulation_type = Column(String, nullable=True) # validate the request [must have if mode==client]
-    # simulation_detail = Column(String, nullable=True) # have default for each type managed by application
+    tx_power = Column(Integer, nullable=True)
     
     # for future use
     is_active = Column(Boolean, nullable=False, default=False)

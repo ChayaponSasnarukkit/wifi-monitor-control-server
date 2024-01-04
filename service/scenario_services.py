@@ -2,7 +2,7 @@ from models.models import Scenario, Simulation, NodeConfiguration
 from models.schemas import ScenarioRequest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 
 async def create_scenario(db_session: AsyncSession, request_body: ScenarioRequest):
     # validate request
@@ -76,6 +76,14 @@ async def delete_scenario(db_session: AsyncSession, scenario_id: int):
     if not scenario:
         raise HTTPException(404, "scenario not found")
     # delete scenario
+    await db_session.execute(
+        delete(NodeConfiguration)
+        .where(NodeConfiguration.scenario==scenario)
+    )
+    await db_session.execute(
+        delete(Simulation)
+        .where(Simulation.scenario==scenario)
+    )
     await db_session.delete(scenario)
     await db_session.commit()
     return {"message": "done"}

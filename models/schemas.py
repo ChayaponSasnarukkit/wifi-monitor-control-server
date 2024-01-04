@@ -2,23 +2,29 @@ from pydantic import BaseModel
 from fastapi import HTTPException
 from typing import List, Optional
 from models.models import Scenario, Simulation, NodeConfiguration, RadioModeEnum, NetworkModeEnum
+import datetime
 
+# d = datetime.datetime.now()
 class ScenarioRequest(BaseModel):
     scenario_name: str
     scenario_desc: str
     is_using_target_ap: bool = False
     target_ap_ssid: Optional[str] = None
     target_ap_password: Optional[str] = None
+    target_ap_radio: Optional[RadioModeEnum] = None
     
     def validate_target_ap(self):
         if self.is_using_target_ap:
             if not self.target_ap_ssid:
                 raise HTTPException(400, "target_ap_ssid is required when scenario is using target_ap")
-            if not self.target_ap_password:
+            if not self.target_ap_radio:
+                raise HTTPException(400, "target_ap_radio is required when scenario is using target_ap")
+            if not hasattr(self, "target_ap_password"):
                 raise HTTPException(400, "target_ap_password is required when scenario is using target_ap")
         else:
             self.target_ap_ssid = None
             self.target_ap_password = None
+            self.target_ap_radio = None
             
 class ScenarioListResponse(BaseModel):
     scenario_id: int
@@ -91,5 +97,16 @@ class NodeConfigList(BaseModel):
     alias_name: str
     network_mode: NetworkModeEnum # ap, client
     network_ssid: str
+    class Config():
+        from_attributes = True 
+        
+class RunSimulationTitle(BaseModel):
+    title: Optional[str] = ""
+    
+class SimulationList(BaseModel):
+    id: int
+    title: str
+    created_at: datetime.datetime
+    state: str
     class Config():
         from_attributes = True 
