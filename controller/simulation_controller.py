@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException
 from typing import Optional, List
 from models.models import Scenario, Simulation, NodeConfiguration
-from models.schemas import SimulationList
+from models.schemas import SimulationList, RunSimulationTitle
 from service import simulation_services
 from utils.dependency import DBSessionDep
 
@@ -11,8 +11,8 @@ router = APIRouter(
 )
 
 @router.post("/run", status_code=200)
-async def run_simulation(db_session: DBSessionDep, scenario_id: int, request: Request):
-    return (await simulation_services.run_simulation(request.app.lock, db_session, request, scenario_id))
+async def run_simulation(db_session: DBSessionDep, scenario_id: int, request_body: RunSimulationTitle, request: Request):
+    return (await simulation_services.run_simulation(request.app.lock, db_session, request_body, request, scenario_id))
 
 @router.post("/{simulation_id}/cancel", status_code=200)
 async def cancel_simulation(db_session: DBSessionDep, scenario_id: int, simulation_id: int, request: Request):
