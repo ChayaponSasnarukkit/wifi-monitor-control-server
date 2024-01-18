@@ -3,3 +3,5 @@ uvicorn
 SQLAlchemy
 aiosqlite
 aiohttp
+numpy
+requests

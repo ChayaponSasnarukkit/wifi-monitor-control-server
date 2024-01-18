@@ -19,6 +19,12 @@ from models.database import get_db_session
 async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request: Request, simulation: Simulation, parsed_node_configs: dict, target_ssid_password: str, target_ssid_radio: RadioModeEnum):
     try:
         target_ssid_radio = target_ssid_radio.value
+        map_ip_to_alias_name = {}
+        for ssid in parsed_node_configs:
+            for control_ip in parsed_node_configs[ssid]["aps"]:
+                map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["aps"][control_ip]["alias_name"]
+            for control_ip in parsed_node_configs[ssid]["clients"]:
+                map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["clients"][control_ip]["alias_name"]
         have_monitor_data = False
         # configuring all ap_node
         async with lock:
@@ -55,7 +61,8 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 if issubclass(type(result), Exception):
                     if result is asyncio.CancelledError:
                         raise result
-                    simulation.state_message += str(result)+"\n"
+                    print(result)
+                    simulation.state_message += f"{str(result)}"
                 else:
                     if result[0] == "ready_to_use":
                         finish_urls.add(result[1])
@@ -162,9 +169,10 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         running_processes = []
         if have_temp_profile and this_device_server_timeout > 0 and len(this_device_simulation_modes) > 0:
             run_scripts = generate_scripts_for_run_simulation(this_device_simulation_modes, this_device_server_timeout+5)
-            for script in run_scripts:
-                process = await asyncio.create_subprocess_shell(script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-                running_processes.append(process)
+            if len(run_scripts) > 0:
+                for script in run_scripts:
+                    process = await asyncio.create_subprocess_shell(script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                    running_processes.append(process)
         # keep sending request until task scheduled on all client
         running_map_url_data = {f"http://{control_ip}:8000/simulation/run": running_request_data[control_ip] for control_ip in running_request_data}    
         print("\n\n\n\nksdjfdolsdj\n")

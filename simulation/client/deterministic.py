@@ -57,9 +57,9 @@ async def simulate_client(reader: StreamReader, writer: StreamWriter):
         raise # raise after finish exec finally
     finally:
         try:
-            print(f"{alias_name} deterministic_client {time.time()}: writing eof")
-            writer.write_eof()
-            await writer.drain()
+            # print(f"{alias_name} deterministic_client {time.time()}: writing eof")
+            # writer.write_eof()
+            # await writer.drain()
             # if client has finished writing then closed socket
             print(f"{alias_name} deterministic_client {time.time()}: closing the socket")
             writer.close()

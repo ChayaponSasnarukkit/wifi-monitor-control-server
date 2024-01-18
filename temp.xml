@@ -1,9 +1,9 @@
 
         <WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
-            <name>dlink-207A</name>
+            <name>GalaxyNote10+25bc</name>
             <SSIDConfig>
                 <SSID>
-                    <name>dlink-207A</name>
+                    <name>GalaxyNote10+25bc</name>
                 </SSID>
             </SSIDConfig>
             <connectionType>ESS</connectionType>
@@ -18,7 +18,7 @@
                     <sharedKey>
                         <keyType>passPhrase</keyType>
                         <protected>false</protected>
-                        <keyMaterial>golfymarky</keyMaterial>
+                        <keyMaterial>qbil0530</keyMaterial>
                     </sharedKey>
                 </security>
             </MSM>

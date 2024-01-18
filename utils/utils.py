@@ -4,7 +4,7 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
-import asyncio, psutil, aiohttp, subprocess
+import asyncio, psutil, aiohttp, subprocess, time
     
 
 def parse_network_from_node_config(node_configs: List[NodeConfiguration], target_ap_ssid: str) -> dict:
@@ -25,7 +25,7 @@ def parse_network_from_node_config(node_configs: List[NodeConfiguration], target
                 "tx_power": node.tx_power if node.tx_power is not None else 20,
                 "radio": node.radio if node.radio is not None else "5G",
                 "timeout": 0 if len(network_info[node.network_ssid]["clients"]) == 0 else max([network_info[node.network_ssid]["clients"][client]["timeout"] for client in network_info[node.network_ssid]["clients"]]),
-                "sever_types": [],
+                "sever_types": [] if len(network_info[node.network_ssid]["clients"]) == 0 else list({network_info[node.network_ssid]["clients"][client]["simulation_type"] for client in network_info[node.network_ssid]["clients"]})
             }
         else:
             network_info[node.network_ssid]["clients"][node.control_ip_addr] = dict(node.simulation_detail).copy()
@@ -190,8 +190,13 @@ async def keep_sending_post_request_until_all_ok(db_session: AsyncSession, simul
             if issubclass(type(result), Exception):
                 if result is asyncio.CancelledError:
                     raise result
+                print(result, type(result.args), type(result.args[0]), (result.args[0]).host)
+                # aiohttp.client_reqrep.ConnectionKey
                 if update_exception_to_state:
-                    simulation.state_message += str(result)+"\n"
+                    if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                        simulation.state_message += f"{result.args[0].host} {time.time()}: {str(result)}\n"
+                    else:
+                        simulation.state_message += str(result)+"\n"
             else:
                 ok_url.add(result[1])
                 simulation.state_message += f"{result[1].split(':')[1][2:]} : {result[0]}\n"

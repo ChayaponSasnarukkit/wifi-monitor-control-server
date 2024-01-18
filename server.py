@@ -4,10 +4,18 @@ from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn, asyncio
 import sqlalchemy
-
 from controller import scenario_controller, node_config_controller, simulation_controller
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    web_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/web_application.py")
+    file_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/file_transfer.py")
+    yield
+    # Clean up the ML models and release the resources
+    web_simulation_process.terminate()
+    file_simulation_process.terminate()
+
+app = FastAPI(lifespan=lifespan)
 
 app.lock = asyncio.Lock()
 app.running_task = None
@@ -41,4 +49,4 @@ async def unicorn_exception_handler(request: Request, exc: sqlalchemy.exc.Integr
     )
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

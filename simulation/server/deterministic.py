@@ -14,6 +14,7 @@ def handle_sigterm(*args):
 async def handle_client(reader: StreamReader, writer: StreamWriter):
     global alias_name
     global timeout
+    sent_bytes = 0
     try:
         print(f"{alias_name} deterministic_server {time.time()}: client connected")
         # initial parameter
@@ -34,6 +35,7 @@ async def handle_client(reader: StreamReader, writer: StreamWriter):
             # writing data
             writer.write(data.encode('utf8'))
             await writer.drain()
+            sent_bytes += average_packet_size
             
             # read from read buffer prevent it from begin full
             try:
@@ -51,11 +53,12 @@ async def handle_client(reader: StreamReader, writer: StreamWriter):
         print(f"{alias_name} deterministic_server {time.time()}: unexpected exception was raised when simulating {str(e)}")
         raise # raise after finish exec finally
     finally:
+        print(sent_bytes)
         try:
-            # TODO: need to try if no writing eof can the other end recieve eof
-            print(f"{alias_name} deterministic_server {time.time()}: writing eof")
-            writer.write_eof()
-            await writer.drain()
+            # # TODO: need to try if no writing eof can the other end recieve eof
+            # print(f"{alias_name} deterministic_server {time.time()}: writing eof")
+            # writer.write_eof()
+            # await writer.drain()
             # if client has finished writing then closed socket
             print(f"{alias_name} deterministic_server {time.time()}: closing the socket")
             writer.close()
