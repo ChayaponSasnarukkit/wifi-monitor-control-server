@@ -43,7 +43,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 }
         # sending request until all send the ok respond
         config_data_map_url_data = {f"http://{control_ip}:8000/configure/ap": config_ap_request_data[control_ip] for control_ip in config_ap_request_data}
-        await keep_sending_post_request_until_all_ok(db_session, simulation, config_data_map_url_data)
+        await keep_sending_post_request_until_all_ok(db_session, simulation, config_data_map_url_data, map_ip_to_alias_name)
         # start to poll the result
         polling_urls = {f"http://{control_ip}:8000/configure/ap/state": config_ap_request_data[control_ip] for control_ip in config_ap_request_data}    
         finish_urls = set()
@@ -62,11 +62,14 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     if result is asyncio.CancelledError:
                         raise result
                     print(result)
-                    simulation.state_message += f"{str(result)}"
+                    if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                        simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
+                    else:
+                        simulation.state_message += str(result)+"\n"
                 else:
                     if result[0] == "ready_to_use":
                         finish_urls.add(result[1])
-                        simulation.state_message += f"{result[1].split(':')[1][2:]} {time.time()}: {result[0]}\n"
+                        simulation.state_message += f"{map_ip_to_alias_name[result[1].split(':')[1][2:]]} {time.time()}: {result[0]}\n"
                         print(f"{result[1].split(':')[1][2:]} {time.time()}: {result[0]}\n")
             db_session.add(simulation)
             await db_session.commit()
@@ -101,7 +104,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         # keep sending request until all connected (this url wll wait for configured to apply because connected wifi is way more faster than config ap)
         config_map_url_data = {f"http://{control_ip}:8000/configure/client": config_client_request_data[control_ip] for control_ip in config_client_request_data}    
         print(config_map_url_data)
-        await keep_sending_post_request_until_all_ok(db_session, simulation, config_map_url_data)
+        await keep_sending_post_request_until_all_ok(db_session, simulation, config_map_url_data, map_ip_to_alias_name)
         # polling until this device successfully connected to target ap
         if have_temp_profile:
             this_device_connected = False
@@ -111,14 +114,14 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     this_device_connected = await _configure_server_connection(ssid, target_ssid_password)
                 except RUN_SUBPROCESS_EXCEPTION as e:
                     # print(str(e))
-                    simulation.state_message += str(e)
+                    simulation.state_message += f"this_device {time.time()}: {str(e)}"
                 # print(this_device_connected)
                 await asyncio.sleep(2)
                 db_session.add(simulation)
                 await db_session.commit()
             this_device_connected_ip = _get_ip_address()
             # print(this_device_connected_ip)
-            simulation.state_message += f"this_device: connected to {target_ssid} with ip_address {this_device_connected_ip}\n"
+            simulation.state_message += f"this_device {time.time()}: connected to {target_ssid} with ip_address {this_device_connected_ip}\n"
             db_session.add(simulation)
             await db_session.commit()
         # ============================================================================================== #
@@ -152,7 +155,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     "alias_name": parsed_node_configs[ssid]["aps"][control_ip]["alias_name"],
                     "simulation_mode": "server",
                     "simulation_scenarios": [
-                        {"simulation_type": mode} for mode in parsed_node_configs[ssid]["aps"][control_ip]["sever_types"]
+                        {"simulation_type": mode, "timeout": parsed_node_configs[ssid]["aps"][control_ip]["timeout"]} for mode in parsed_node_configs[ssid]["aps"][control_ip]["sever_types"]
                     ],
                 }
             for control_ip in parsed_node_configs[ssid]["clients"]:
@@ -176,7 +179,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         # keep sending request until task scheduled on all client
         running_map_url_data = {f"http://{control_ip}:8000/simulation/run": running_request_data[control_ip] for control_ip in running_request_data}    
         print("\n\n\n\nksdjfdolsdj\n")
-        await keep_sending_post_request_until_all_ok(db_session, simulation, running_map_url_data)
+        await keep_sending_post_request_until_all_ok(db_session, simulation, running_map_url_data, map_ip_to_alias_name)
         # polling until all completed
         have_monitor_data = True
         polling_urls = {f"http://{control_ip}:8000/simulation/state": None for control_ip in running_request_data}
@@ -190,7 +193,10 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     if issubclass(type(result), Exception):
                         if result is asyncio.CancelledError:
                             raise result
-                        simulation.state_message += str(result)+"\n"
+                        if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                            simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
+                        else:
+                            simulation.state_message += str(result)+"\n"
                     else:
                         if result[0]["state"] == "finish":
                             finish_urls.add(result[1])
@@ -208,7 +214,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                             # process is finish writing (write eof to buffer)
                             continue
                         print("aaaa", stdout.decode())
-                        simulation.state_message += stdout.decode()
+                        simulation.state_message += f"this_device {time.time()}: {stdout.decode()}"
                     except asyncio.TimeoutError:
                         # print("A")
                         pass
@@ -238,11 +244,14 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     if issubclass(type(result), Exception):
                         if result is asyncio.CancelledError:
                             raise result
-                        simulation.state_message += str(result)+"\n"
+                        if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                            simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
+                        else:
+                            simulation.state_message += str(result)+"\n"
                         # commit()
                     else:
                         finish_urls.add(result[1])
-                        simulation.state_message += f"{result[1].split(':')[1][2:]} {time.time()} : {result[0]}\n"
+                        simulation.state_message += f"{map_ip_to_alias_name[result[1].split(':')[1][2:]]} {time.time()} : {result[0]}\n"
                         # commit
                 polling_results = await send_multiple_get_request(polling_urls, polled_urls)
                 for result in polling_results:
@@ -250,7 +259,10 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     if issubclass(type(result), Exception):
                         if result is asyncio.CancelledError:
                             raise result
-                        simulation.state_message += str(result)+"\n"
+                        if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                            simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
+                        else:
+                            simulation.state_message += str(result)+"\n"
                     else:
                         if result[0]["state"] == "finish":
                             polled_urls.add(result[1])
@@ -274,12 +286,12 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                         # os.kill(process.pid, signal.SIGTERM)
                         print(process.pid)
                         result = subprocess.run(["taskkill", "/F", "/T", "/PID", str(process.pid)], stdout=subprocess.PIPE)
-                        simulation.state_message += result.stdout.decode()
+                        simulation.state_message += f"this_device {time.time()}: {result.stdout.decode()}"
                         print("is this task death")
                         print(process.returncode)
                         stdout, stderr = await process.communicate()
                         print(process.returncode)
-                        simulation.state_message += stdout.decode()
+                        simulation.state_message += f"this_device {time.time()}: {stdout.decode()}"
                 db_session.add(simulation)
                 await db_session.commit()
                 print(time.time())

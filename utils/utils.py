@@ -94,13 +94,14 @@ async def run_subprocess(command: str):
 
 def _generate_script_for_run_ap_simulation(alias_name: str, mode, timeout):
     if mode == "deterministic":
-        return f"python -u ./simulation/server/deterministic.py {alias_name} {timeout}"
+        return f"python -u ./simulation/server/udp_window_deterministic.py {alias_name} {timeout}"
 
 def generate_scripts_for_run_simulation(scenario_mode, timeout):
     scripts = []
     for mode in scenario_mode:
-        scripts.append(
-            _generate_script_for_run_ap_simulation("this_device", mode, timeout))
+        script = _generate_script_for_run_ap_simulation("this_device", mode, timeout)
+        if script:
+            scripts.append(script)
     return scripts
 
 
@@ -181,7 +182,7 @@ async def get_request(url: str, params: dict = {}):
         # print(str(response.url))
         return (await response.json(content_type=None)), str(response.url)
     
-async def keep_sending_post_request_until_all_ok(db_session: AsyncSession, simulation: Simulation, map_url_data: dict, update_exception_to_state: bool = True,):
+async def keep_sending_post_request_until_all_ok(db_session: AsyncSession, simulation: Simulation, map_url_data: dict,  map_ip_to_alias_name: dict, update_exception_to_state: bool = True):
     ok_url = set() # set of url that already recieve 200 status response
     while True:
         tasks = [post_request(url, map_url_data[url]) for url in map_url_data if url not in ok_url]
@@ -194,12 +195,12 @@ async def keep_sending_post_request_until_all_ok(db_session: AsyncSession, simul
                 # aiohttp.client_reqrep.ConnectionKey
                 if update_exception_to_state:
                     if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
-                        simulation.state_message += f"{result.args[0].host} {time.time()}: {str(result)}\n"
+                        simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
                     else:
                         simulation.state_message += str(result)+"\n"
             else:
                 ok_url.add(result[1])
-                simulation.state_message += f"{result[1].split(':')[1][2:]} : {result[0]}\n"
+                simulation.state_message += f"{map_ip_to_alias_name[result[1].split(':')[1][2:]]} {time.time()}: {result[0]}\n"
         # commit (once per loop)
         db_session.add(simulation)
         await db_session.commit()

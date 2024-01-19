@@ -20,14 +20,6 @@ states = {}
 error_log = {}
 recv_bytes = {}
 send_bytes = {}
-
-def _is_initial_message(data):
-    print(len(data))
-    if data.find("average_interval_time:")!=-1 and data.find("average_packet_size:") and len(data)==56:
-        print("True")
-        return True
-    else:
-        return False
     
 def recv_from(buf_size):
     global parameters; global timeout; global alias_name; global template_log; global states
@@ -111,7 +103,7 @@ def main():
                             state = "handshaked"
                             break
                 except socket.error as e:
-                    print(str(e))
+                    print(template_log.format(alias_name, time.time(), str(e)))
             # read socket until no data available to read
             readable, _, _ = select.select([client_socket], [], [], 0)
             # print(readable)

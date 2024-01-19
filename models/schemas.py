@@ -43,10 +43,8 @@ DEFAULT_DETER = {
 DEFAULT_WEB = {
     "simulation_type": "web_application",
     "timeout": 300,
-    "average_interval_time": 10000, #lambda 10 sec
+    "average_interval_time": 2000, #lambda 10 sec
     "average_packet_size": 1024,
-    "average_new_page_packet_size": 2048,
-    "probability_of_load_new_page": 30,
 }
 
 DEFAULT_FILE = {

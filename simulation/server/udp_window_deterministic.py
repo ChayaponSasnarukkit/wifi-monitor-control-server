@@ -24,7 +24,7 @@ send_bytes = {}
 def _is_initial_message(data):
     # print(len(data))
     if data and data.find("average_interval_time:")!=-1 and data.find("average_packet_size:") and len(data)==56:
-        print("True")
+        # print("True")
         return True
     else:
         return False
@@ -45,12 +45,12 @@ def recv_from(buf_size):
         # print("exc")
         # err_message = f"from {addr} when trying to read socket \"{str(e)}\" has occured"
         err_message = f"when trying to read socket \"{str(e)}\" has occured"
-        print(e.errno, e.args)
+        # print(e.errno, e.args)
         if err_message in error_log:
             error_log[err_message].append(time.time())
         else:
             error_log[err_message] = [time.time()]
-            # print(template_log.format(alias_name, time.time(), err_message))
+            print(template_log.format(alias_name, time.time(), err_message))
         return None, None
         # if e.errno == 10054:
         #     states[addr] = "stop writing"
@@ -65,7 +65,7 @@ def send_to(data, addr):
             error_log[err_message].append(time.time())
         else:
             error_log[err_message] = [time.time()]
-            # print(template_log.format(alias_name, time.time(), err_message))
+            print(template_log.format(alias_name, time.time(), err_message))
         return
     try:
         server_socket.sendto(data, addr)
