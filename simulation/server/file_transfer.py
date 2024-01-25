@@ -1,7 +1,6 @@
 from fastapi import Depends, FastAPI, Request
 from typing import List, Optional
-import uvicorn, asyncio, string, random
-import sqlalchemy
+import uvicorn, asyncio, string, random, time
 from fastapi.responses import StreamingResponse, FileResponse
 app = FastAPI()
 
@@ -39,20 +38,32 @@ async def download_file(size: Optional[int]=1000000, chunk_size: Optional[int]=1
 async def download_filea(size: Optional[int]=1000000, chunk_size: Optional[int]=64*1024):
     async def file_generator():
         try:
-            data = "a"*chunk_size
+            data = "a"*(chunk_size)
             total_sent = 0
             # print(total_sent)
             while total_sent < size:
                 # print(total_sent)
-                if size - total_sent < chunk_size:
-                    packet_size = size - total_sent
+                if total_sent == 0:
+                    if size - total_sent < chunk_size:
+                        packet_size = size - total_sent
+                        if packet_size >= 18:
+                            yield f"{time.time():.7f}{'a'*(packet_size-18)}"
+                        else:
+                            yield f"{time.time():.7f}"
+                    else:
+                        packet_size = chunk_size
+                        yield f"{time.time():.7f}{data[:len(data)-18]}"
                 else:
-                    packet_size = chunk_size
-                yield data
+                    if size - total_sent < chunk_size:
+                        packet_size = size - total_sent
+                        yield "a"*packet_size
+                    else:
+                        packet_size = chunk_size
+                        yield data
                 # yield all_chunks[total_sent//chunk_size]
                 # yield generate_random_string(packet_size)
                 await asyncio.sleep(0.00001)
-                total_sent += chunk_size
+                total_sent += packet_size
             print(total_sent)
         except Exception:
             print("caught cancelled error")

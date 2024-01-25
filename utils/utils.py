@@ -4,7 +4,7 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
-import asyncio, psutil, aiohttp, subprocess, time
+import asyncio, psutil, aiohttp, subprocess, time, json, os
     
 
 def parse_network_from_node_config(node_configs: List[NodeConfiguration], target_ap_ssid: str) -> dict:
@@ -41,6 +41,8 @@ def parse_network_from_node_config(node_configs: List[NodeConfiguration], target
     # find warning:
     #   1. have multiple aps in same ssid
     #   2. not having ap and that ssid is not the target_ap
+    if len(network_info) == 0:
+        enable_to_run = False
     for ssid in network_info:
         if not network_info[ssid]["is_target_ap"] and len(network_info[ssid]["aps"]) == 0:
             enable_to_run = False
@@ -52,7 +54,6 @@ def parse_network_from_node_config(node_configs: List[NodeConfiguration], target
             if ssid not in warning_message:
                 warning_message[ssid] = []
             warning_message[ssid].append(f"there are multiple aps exist in this network, include {network_info[ssid]['aps'].keys()}")
-    
     return {
         "enable_to_run": enable_to_run,
         "warning_message": warning_message,
@@ -94,15 +95,18 @@ async def run_subprocess(command: str):
 
 def _generate_script_for_run_ap_simulation(alias_name: str, mode, timeout):
     if mode == "deterministic":
-        return f"python -u ./simulation/server/udp_window_deterministic.py {alias_name} {timeout}"
-
+        tmp_file = f"udp_server_{str(time.time()).replace('.', '_')}.json"
+        return f"python -u ./simulation/server/udp_window_deterministic.py {alias_name} {timeout} {tmp_file}", tmp_file
+    return None, None
 def generate_scripts_for_run_simulation(scenario_mode, timeout):
-    scripts = []
+    scripts = []; tmp_files = []
     for mode in scenario_mode:
-        script = _generate_script_for_run_ap_simulation("this_device", mode, timeout)
+        script, file_name = _generate_script_for_run_ap_simulation("this_device", mode, timeout)
         if script:
             scripts.append(script)
-    return scripts
+        if file_name:
+            tmp_files.append(file_name)
+    return scripts, tmp_files
 
 
 def _get_ip_address():
@@ -191,12 +195,14 @@ async def keep_sending_post_request_until_all_ok(db_session: AsyncSession, simul
             if issubclass(type(result), Exception):
                 if result is asyncio.CancelledError:
                     raise result
-                print(result, type(result.args), type(result.args[0]), (result.args[0]).host)
+                # print(result, type(result.args), type(result.args[0]), (result.args[0]).host)
                 # aiohttp.client_reqrep.ConnectionKey
                 if update_exception_to_state:
                     if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
                         simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
                     else:
+                        print(result, type(result.args), result.args)
+                        print(type(result.args[0]), result.args[0])
                         simulation.state_message += str(result)+"\n"
             else:
                 ok_url.add(result[1])
@@ -213,3 +219,24 @@ async def send_multiple_get_request(urls: dict, except_urls: set):
    tasks = [get_request(url, urls[url]) for url in urls if url not in except_urls]
    results = await asyncio.gather(*tasks, return_exceptions=True)
    return results
+
+def read_json_file_and_delete_file(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            data = json.load(file)
+        os.remove(file_path)
+        return data
+    except FileNotFoundError:
+        print(f"The file {file_path} does not exist.")
+        return None
+    except json.JSONDecodeError:
+        print(f"Error decoding JSON in {file_path}. Please check the file format.")
+        return None
+
+
+# (RequestInfo(
+#     url=URL('http://192.168.1.1:8000/configure/client'), 
+#     method='POST', 
+#     headers=<CIMultiDictProxy('Host': '192.168.1.1:8000', 'Content-Type': 'application/json', 'Accept': '*/*', 'Accept-Encoding': 'gzip, deflate', 'User-Agent': 'Python/3.11 aiohttp/3.9.1', 'Content-Length': '93')>, 
+#     real_url=URL('http://192.168.1.1:8000/configure/client')), ()
+#  )

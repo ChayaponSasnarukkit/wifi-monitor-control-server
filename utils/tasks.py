@@ -9,6 +9,7 @@ from utils.utils import (
     _configure_server_connection, 
     keep_sending_post_request_until_all_ok, 
     send_multiple_get_request,
+    read_json_file_and_delete_file,
     RUN_SUBPROCESS_EXCEPTION
 )
 from fastapi import Request
@@ -18,6 +19,8 @@ from models.database import get_db_session
     
 async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request: Request, simulation: Simulation, parsed_node_configs: dict, target_ssid_password: str, target_ssid_radio: RadioModeEnum):
     try:
+        have_monitor_data = False
+        print(target_ssid_radio)
         target_ssid_radio = target_ssid_radio.value
         map_ip_to_alias_name = {}
         for ssid in parsed_node_configs:
@@ -25,7 +28,6 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["aps"][control_ip]["alias_name"]
             for control_ip in parsed_node_configs[ssid]["clients"]:
                 map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["clients"][control_ip]["alias_name"]
-        have_monitor_data = False
         # configuring all ap_node
         async with lock:
             simulation.state = "configuring access point"
@@ -50,7 +52,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         # await 10 second make sure that tx_packets count is being cleared (ตัวเก่าจะช้า 30 วินาที)
         if len(polling_urls) > 0:
             await asyncio.sleep(10)
-        # print("somethiong\n\n\n")
+        print("somethiong\n\n\n")
         while True:
             # print(polling_urls)
             if len(polling_urls) == len(finish_urls):
@@ -171,11 +173,13 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         print("\n\n\n\nksdjfdolsdj\n")
         running_processes = []
         if have_temp_profile and this_device_server_timeout > 0 and len(this_device_simulation_modes) > 0:
-            run_scripts = generate_scripts_for_run_simulation(this_device_simulation_modes, this_device_server_timeout+5)
+            run_scripts, transfer_file = generate_scripts_for_run_simulation(this_device_simulation_modes, this_device_server_timeout+5)
             if len(run_scripts) > 0:
                 for script in run_scripts:
                     process = await asyncio.create_subprocess_shell(script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
                     running_processes.append(process)
+        else:
+            transfer_file = []
         # keep sending request until task scheduled on all client
         running_map_url_data = {f"http://{control_ip}:8000/simulation/run": running_request_data[control_ip] for control_ip in running_request_data}    
         print("\n\n\n\nksdjfdolsdj\n")
@@ -237,14 +241,16 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
             polled_urls = set()
             cnt = 0
             while cnt < 3:
-                print(cnt)
+                print("cnt", cnt, map_url_data)
                 tasks = [post_request(url, map_url_data[url]) for url in map_url_data if url not in finish_urls]
                 results = await asyncio.gather(*tasks, return_exceptions=True)
+                print(results)
                 for result in results:
                     if issubclass(type(result), Exception):
                         if result is asyncio.CancelledError:
                             raise result
-                        if type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
+                        print(str(result), result.args)
+                        if result.args and len(result.args) >= 1 and type(result.args[0]) is aiohttp.client_reqrep.ConnectionKey:
                             simulation.state_message += f"{map_ip_to_alias_name[result.args[0].host]} {time.time()}: {str(result)}\n"
                         else:
                             simulation.state_message += str(result)+"\n"
@@ -336,6 +342,10 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 else:
                     ip = str(result[1]).split(":")[1][2:]
                     simulation_data[ip] = result[0]
+            for file_path in transfer_file:
+                data = read_json_file_and_delete_file(file_path)
+                if data:
+                    simulation_data.update({"this_device": data})
             simulation.simulation_data = simulation_data
             db_session.add(simulation)
             await db_session.commit()
