@@ -119,6 +119,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             .limit(1)
         )
     ).first()
+    # print(simulation.simulation_data)
     if not simulation:
         raise HTTPException(404, "simulation not found")
     return simulation
