@@ -37,7 +37,7 @@ def main():
                 # get server timestamp 
                 server_start_response = float(res[:18])
                 # append average data rate
-                average_data_rates.append([finish_recieve, len(res.content)/(finish_recieve-server_start_response)])
+                average_data_rates.append([finish_recieve, len(res.content), server_start_response])
                 total_requests += 1; total_bytes += len(res.content)
                 if time.time() >= check_point:
                     print(template_log.format(alias_name, time.time(), f"{total_requests} requests sent, {total_bytes} bytes recv from {base_url}"))

@@ -125,6 +125,22 @@ def _get_ip_address():
 
     return ip_address
 
+def _get_control_ip_address():
+    # Use subprocess to get the IP configuration for the WiFi interface
+    result = subprocess.run(["ipconfig"], capture_output=True, text=True)
+    ipconfig_output = result.stdout
+
+    # Find the WiFi interface information in the output
+    info_start = ipconfig_output.find('Ethernet')
+    info = ipconfig_output[info_start:]
+    # print(ipconfig_output)
+    # Find the IPv4 address in the WiFi interface information
+    ip_start = info.find('IPv4 Address') + 36
+    ip_end = info.find('\n', ip_start)
+    ip_address = info[ip_start:ip_end].strip()
+
+    return ip_address
+
 async def _configure_server_connection(ssid, password):
     # Configure Server Connection
     # Create a temporary XML profile file

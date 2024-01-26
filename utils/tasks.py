@@ -1,5 +1,5 @@
 import psutil
-import asyncio
+import asyncio, socket
 import aiohttp, os, signal, subprocess
 import time
 from utils.utils import (
@@ -10,6 +10,7 @@ from utils.utils import (
     keep_sending_post_request_until_all_ok, 
     send_multiple_get_request,
     read_json_file_and_delete_file,
+    _get_control_ip_address,
     RUN_SUBPROCESS_EXCEPTION
 )
 from fastapi import Request
@@ -19,6 +20,7 @@ from models.database import get_db_session
     
 async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request: Request, simulation: Simulation, parsed_node_configs: dict, target_ssid_password: str, target_ssid_radio: RadioModeEnum):
     try:
+        # initial variable
         have_monitor_data = False
         print(target_ssid_radio)
         target_ssid_radio = target_ssid_radio.value
@@ -28,6 +30,23 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["aps"][control_ip]["alias_name"]
             for control_ip in parsed_node_configs[ssid]["clients"]:
                 map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["clients"][control_ip]["alias_name"]
+        # sync clock with every node
+        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        udp_socket.bind((_get_control_ip_address(), 8808))
+        for i in range(3):
+            udp_socket.sendto(f"{time.time():7f}".encode(), ("192.168.1.1", 8808))
+            await asyncio.sleep(1)
+        udp_socket.close()
+        # for ssid in parsed_node_configs:
+        #     for control_ip in parsed_node_configs[ssid]["aps"]:
+        #         await post_request(f"http://{control_ip}:8000/sync_clock/{time.time():.7f}", {})
+        #         await asyncio.sleep(0.01)
+        #         await post_request(f"http://{control_ip}:8000/sync_clock/{time.time():.7f}", {})
+        #     for control_ip in parsed_node_configs[ssid]["clients"]:
+        #         await post_request(f"http://{control_ip}:8000/sync_clock/{time.time():.7f}", {})
+        #         await asyncio.sleep(0.01)
+        #         await post_request(f"http://{control_ip}:8000/sync_clock/{time.time():.7f}", {})
         # configuring all ap_node
         async with lock:
             simulation.state = "configuring access point"
@@ -174,10 +193,12 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         running_processes = []
         if have_temp_profile and this_device_server_timeout > 0 and len(this_device_simulation_modes) > 0:
             run_scripts, transfer_file = generate_scripts_for_run_simulation(this_device_simulation_modes, this_device_server_timeout+5)
+            print(run_scripts, transfer_file)
             if len(run_scripts) > 0:
                 for script in run_scripts:
                     process = await asyncio.create_subprocess_shell(script, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
                     running_processes.append(process)
+                print(running_processes)
         else:
             transfer_file = []
         # keep sending request until task scheduled on all client
@@ -209,9 +230,9 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                         simulation.state_message += result[0]["new_state_message"]
             if len(running_processes) != len(finish_process):
                 for process in running_processes:
-                    # print(process)
+                    print(process)
                     try:
-                        # print("AB")
+                        print("AB")
                         stdout = await asyncio.wait_for(process.stdout.read(1024), timeout=0.01)
                         if not stdout:
                             finish_process.append(process)
@@ -220,7 +241,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                         print("aaaa", stdout.decode())
                         simulation.state_message += f"this_device {time.time()}: {stdout.decode()}"
                     except asyncio.TimeoutError:
-                        # print("A")
+                        print("A")
                         pass
             db_session.add(simulation)
             await db_session.commit()
@@ -341,7 +362,9 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                         raise result
                 else:
                     ip = str(result[1]).split(":")[1][2:]
+                    print(result[0])
                     simulation_data[ip] = result[0]
+                    print(simulation_data[ip])
             for file_path in transfer_file:
                 data = read_json_file_and_delete_file(file_path)
                 if data:
