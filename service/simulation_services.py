@@ -134,7 +134,8 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
     simulation_udp_deterministic_client_data = {}
     simulation_udp_deterministic_server_data = {}
     for control_ip in simulation.simulation_data:
-        simulation_data[control_ip] = {field: simulation.simulation_data[control_ip][field] for field in simulation.simulation_data[control_ip] if field in {"Tx_power", "Signal", "Noise", "BitRate"}}
+        if control_ip != "this_device":
+            simulation_data[control_ip] = {field: simulation.simulation_data[control_ip][field] for field in simulation.simulation_data[control_ip] if field in {"Tx_power", "Signal", "Noise", "BitRate"}}
         if "udp_deterministic_client_data_monitored_from_server" in simulation.simulation_data[control_ip]:
             client_data = simulation.simulation_data[control_ip]["udp_deterministic_client_data_monitored_from_server"]
             simulation_udp_deterministic_client_data[control_ip] = {}
@@ -221,10 +222,10 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             if control_ip not in simulation_udp_deterministic_server_data[ap_control_ip]:
                 simulation_udp_deterministic_server_data[ap_control_ip][control_ip] = {}
             simulation_udp_deterministic_server_data[ap_control_ip][control_ip].update({"web_average_data_rates": tmp_data_rates})
-    simulation_data.update({
-        "udp_deterministic_server_data_monitored_from_client": simulation_udp_deterministic_server_data,
-        "udp_deterministic_client_data_monitored_from_server": simulation_udp_deterministic_client_data
-    })
+    # simulation_data.update({
+    #     "udp_deterministic_server_data_monitored_from_client": simulation_udp_deterministic_server_data,
+    #     "udp_deterministic_client_data_monitored_from_server": simulation_udp_deterministic_client_data
+    # })
     
     return {
         "id": simulation.id,
@@ -233,6 +234,8 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
         "state": simulation.state,
         "state_message": simulation.state_message,
         "simulation_data": simulation_data,
+        "udp_deterministic_server_data_monitored_from_client": simulation_udp_deterministic_server_data,
+        "udp_deterministic_client_data_monitored_from_server": simulation_udp_deterministic_client_data,
         "created_at": simulation.created_at,
         "scenario_id": simulation.scenario_id
     }
