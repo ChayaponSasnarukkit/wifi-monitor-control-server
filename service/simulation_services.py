@@ -135,7 +135,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
     simulation_udp_deterministic_server_data = {}
     for control_ip in simulation.simulation_data:
         if control_ip != "this_device":
-            simulation_data[control_ip] = {field: simulation.simulation_data[control_ip][field] for field in simulation.simulation_data[control_ip] if field in {"Tx_power", "Signal", "Noise", "BitRate"}}
+            simulation_data[control_ip] = {field: simulation.simulation_data[control_ip][field] for field in simulation.simulation_data[control_ip] if field in {"Tx-Power", "Signal", "Noise", "BitRate"}}
         if "udp_deterministic_client_data_monitored_from_server" in simulation.simulation_data[control_ip]:
             client_data = simulation.simulation_data[control_ip]["udp_deterministic_client_data_monitored_from_server"]
             simulation_udp_deterministic_client_data[control_ip] = {}
