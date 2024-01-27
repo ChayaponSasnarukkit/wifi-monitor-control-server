@@ -133,6 +133,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
     simulation_data = {}
     simulation_udp_deterministic_client_data = {}
     simulation_udp_deterministic_server_data = {}
+    print(simulation.simulation_data)
     for control_ip in simulation.simulation_data:
         if control_ip != "this_device":
             simulation_data[control_ip] = {field: simulation.simulation_data[control_ip][field] for field in simulation.simulation_data[control_ip] if field in {"Tx-Power", "Signal", "Noise", "BitRate"}}
@@ -161,6 +162,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             if ap_control_ip not in simulation_udp_deterministic_server_data:
                 simulation_udp_deterministic_server_data[ap_control_ip] = {}
             until = 0; expected_seq=0; tmp_latency_data = []; tmp_lost_data = []
+            print(len(server_data))
             for data in server_data:
                 # move to next one sec
                 if data[0] >= until:
@@ -182,20 +184,21 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             if ap_control_ip not in simulation_udp_deterministic_server_data:
                 simulation_udp_deterministic_server_data[ap_control_ip] = {}
             tmp_data_rates = []
-            data_receive_from_start_to_now = 0
-            start_time = server_data[0][0]
-            tmp_data_rates.append(server_data[0])
-            now = start_time + 1
+            if len(server_data) > 0:
+                data_receive_from_start_to_now = 0
+                start_time = server_data[0][0]
+                # tmp_data_rates.append(server_data[0][0])
+                now = start_time + 1
             for data in server_data:
                 if data[0] >= now:
-                    tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                    tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
                     now += 1
                     while data[0] - now >= 1:
-                        tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                        tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
                         now += 1
                 data_receive_from_start_to_now += data[1]
                 if data == server_data[-1]:
-                    tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                    tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
             if control_ip not in simulation_udp_deterministic_server_data[ap_control_ip]:
                 simulation_udp_deterministic_server_data[ap_control_ip][control_ip] = {}
             simulation_udp_deterministic_server_data[ap_control_ip][control_ip].update({"file_average_data_rates": tmp_data_rates})
@@ -205,20 +208,22 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             if ap_control_ip not in simulation_udp_deterministic_server_data:
                 simulation_udp_deterministic_server_data[ap_control_ip] = {}
             tmp_data_rates = []
-            data_receive_from_start_to_now = 0
-            start_time = server_data[0][0]
-            tmp_data_rates.append(server_data[0])
-            now = start_time + 1
+            if len(server_data) > 0:
+                data_receive_from_start_to_now = 0
+                start_time = server_data[0][0]
+                # tmp_data_rates.append(server_data[0][0])
+                now = start_time + 1
+            print(len(server_data))
             for data in server_data:
                 if data[0] >= now:
-                    tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                    tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
                     now += 1
                     while data[0] - now >= 1:
-                        tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                        tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
                         now += 1
                 data_receive_from_start_to_now += data[1]
                 if data == server_data[-1]:
-                    tmp_data_rates.append(now, data_receive_from_start_to_now/(now-start_time))
+                    tmp_data_rates.append((now, data_receive_from_start_to_now/(now-start_time)))
             if control_ip not in simulation_udp_deterministic_server_data[ap_control_ip]:
                 simulation_udp_deterministic_server_data[ap_control_ip][control_ip] = {}
             simulation_udp_deterministic_server_data[ap_control_ip][control_ip].update({"web_average_data_rates": tmp_data_rates})

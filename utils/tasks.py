@@ -31,13 +31,13 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
             for control_ip in parsed_node_configs[ssid]["clients"]:
                 map_ip_to_alias_name[control_ip] = parsed_node_configs[ssid]["clients"][control_ip]["alias_name"]
         # sync clock with every node
-        udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        udp_socket.bind((_get_control_ip_address(), 8808))
-        for i in range(3):
-            udp_socket.sendto(f"{time.time():7f}".encode(), ("192.168.1.1", 8808))
-            await asyncio.sleep(1)
-        udp_socket.close()
+        # udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        # udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        # udp_socket.bind((_get_control_ip_address(), 8808))
+        # for i in range(3):
+        #     udp_socket.sendto(f"{time.time():7f}".encode(), ("192.168.1.1", 8808))
+        #     await asyncio.sleep(1)
+        # udp_socket.close()
         # for ssid in parsed_node_configs:
         #     for control_ip in parsed_node_configs[ssid]["aps"]:
         #         await post_request(f"http://{control_ip}:8000/sync_clock/{time.time():.7f}", {})

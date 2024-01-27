@@ -3,15 +3,30 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn, asyncio
-import sqlalchemy
+import sqlalchemy, time, socket, threading
+from utils.utils import _get_control_ip_address
 from controller import scenario_controller, node_config_controller, simulation_controller
+
+def send_time_sync_task(event):
+    udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    udp_socket.bind((_get_control_ip_address(), 8808))
+    while True:
+        if event.is_set():
+            return
+        udp_socket.sendto(f"{time.time():7f}".encode(), ("255.255.255.255", 8808))
+        time.sleep(1)
+    udp_socket.close()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    my_event = threading.Event()
+    loop = asyncio.get_running_loop()
+    udp_socket_thread = loop.run_in_executor(None, send_time_sync_task, my_event)
     web_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/web_application.py")
     file_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/file_transfer.py")
     yield
-    # Clean up the ML models and release the resources
+    my_event.set()
     web_simulation_process.terminate()
     file_simulation_process.terminate()
 

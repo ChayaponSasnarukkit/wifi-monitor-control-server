@@ -167,12 +167,14 @@ def main():
                 if now >= parameters[addr]["next_time"]:
                     parameters[addr]["message"][0] = str(parameters[addr]["seq_number"]).zfill(7).encode()
                     parameters[addr]["message"][1] = f"{time.time():.7f}".encode()
+                    # print(parameters[addr]["message"][1])
                     return_code = send_to(b"".join(parameters[addr]["message"]), addr)
                     if return_code == -1:
                     #     # -1 mean buffer is full, so no need to keep sending other out since it shared buffer
                         break
                     #     # break before update seq_number because they not sending out from beginning, this can cause by latency/datarate
                     #     # not counting as packet lost
+                    # print(time.time())
                     parameters[addr]["next_time"] = now + parameters[addr]["interval_time"]
                     parameters[addr]["seq_number"] += 1
             
@@ -210,3 +212,4 @@ if __name__ == "__main__":
     main()
     
     "python ./simulation/server/udp_window_deterministic.py test 60 ./simulation/server/udp_test1.json"
+    #python C:\Users\hp\OneDrive\Desktop\final_project\wifi-monitor-control-server\simulation\server\udp_window_deterministic.py test 60 /udp_test1.json

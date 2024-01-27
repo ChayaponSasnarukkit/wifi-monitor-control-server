@@ -32,6 +32,7 @@ def parsing_header_information(data, addr, read_timestamp):
             return
         seq_number = int(data[:7])
         send_timestamp = float(data[7:25])
+        read_timestamp = time.time()
         diff = read_timestamp - send_timestamp
         # print(diff, send_timestamp, read_timestamp, data[:30])
         monitor_data.append([read_timestamp, seq_number, (send_timestamp, diff, len(data))])
