@@ -123,8 +123,8 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
         raise HTTPException(404, "simulation not found")
     map_client_to_ap = {}
     for ssid in simulation.scenario_snapshot:
-        if len((simulation.scenario_snapshot[ssid]["aps"]).keys()) > 0:
-            ap_control_ip = (simulation.scenario_snapshot[ssid]["aps"]).keys()[0]
+        if len((simulation.scenario_snapshot[ssid]["aps"])) > 0:
+            ap_control_ip = next(iter(simulation.scenario_snapshot[ssid]["aps"]))
         else:
             ap_control_ip = "this_device"
         for client in simulation.scenario_snapshot[ssid]["clients"]:
@@ -183,9 +183,10 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             ap_control_ip = map_client_to_ap[control_ip]
             if ap_control_ip not in simulation_udp_deterministic_server_data:
                 simulation_udp_deterministic_server_data[ap_control_ip] = {}
+            tmp_data_rates = []
             if len(server_data) > 0:
                 start_time = server_data[0][0]
-                data_rate_sum = data[0][1]/(server_data[0][0] - server_data[0][2])
+                data_rate_sum = server_data[0][1]/(server_data[0][0] - server_data[0][2])
                 cnt = 1
                 tmp_data_rates.append((server_data[0][0], data_rate_sum/cnt))
                 now = start_time + 1
@@ -212,7 +213,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
             tmp_data_rates = []
             if len(server_data) > 0:
                 start_time = server_data[0][0]
-                data_rate_sum = data[0][1]/(server_data[0][0] - server_data[0][2])
+                data_rate_sum = server_data[0][1]/(server_data[0][0] - server_data[0][2])
                 cnt = 1
                 tmp_data_rates.append((server_data[0][0], data_rate_sum/cnt))
                 now = start_time + 1
@@ -235,7 +236,7 @@ async def get_simulation(db_session: AsyncSession, simulation_id: int):
     #     "udp_deterministic_server_data_monitored_from_client": simulation_udp_deterministic_server_data,
     #     "udp_deterministic_client_data_monitored_from_server": simulation_udp_deterministic_client_data
     # })
-    
+    print(simulation.simulation_data)
     return {
         "id": simulation.id,
         "title": simulation.title,

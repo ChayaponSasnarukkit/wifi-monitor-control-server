@@ -23,7 +23,7 @@ def parse_network_from_node_config(node_configs: List[NodeConfiguration], target
             network_info[node.network_ssid]["aps"][node.control_ip_addr] = {
                 "alias_name": node.alias_name,
                 "tx_power": node.tx_power if node.tx_power is not None else 20,
-                "radio": node.radio if node.radio is not None else "5G",
+                "radio": node.radio.value if node.radio is not None else "5G",
                 "timeout": 0 if len(network_info[node.network_ssid]["clients"]) == 0 else max([network_info[node.network_ssid]["clients"][client]["timeout"] for client in network_info[node.network_ssid]["clients"]]),
                 "sever_types": [] if len(network_info[node.network_ssid]["clients"]) == 0 else list({network_info[node.network_ssid]["clients"][client]["simulation_type"] for client in network_info[node.network_ssid]["clients"]})
             }

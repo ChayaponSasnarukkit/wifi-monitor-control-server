@@ -120,6 +120,12 @@ def main():
         send_to(need_to_send_parameter, server_addr)
         last_time = time.time()
         while time.time() < end_time:
+            try:
+                client_socket.connect(server_addr)
+                client_socket.setblocking(0)
+            except:
+                pass
+        while time.time() < end_time:
             while state != "handshaked":
                 try:
                     # sending the initial message
@@ -190,8 +196,8 @@ if __name__ == "__main__":
             server_addr = (server_ip, 8888)
     except:
         pass
-    client_socket.connect(server_addr)
-    client_socket.setblocking(0)
+    # client_socket.connect(server_addr)
+    # client_socket.setblocking(0)
     main()
     
 # python C:\Users\hp\OneDrive\Desktop\final_project\wifi_monitor_agents\simulation\client\udp_window_deterministic.py test 5 1024 1 C:\Users\hp\OneDrive\Desktop\final_project\wifi_monitor_agents\simulation\client\tmptmp.txt 192.168.1.1 127.0.0.1

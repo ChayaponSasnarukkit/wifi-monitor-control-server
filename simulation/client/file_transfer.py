@@ -33,9 +33,9 @@ def main():
                 # get timestamp when finish recieving
                 finish_recieve = time.time()
                 # get server timestamp 
-                server_start_response = float(file[:18])
+                # server_start_response = float(file[:18])
                 # append average data rate
-                average_data_rates.append([finish_recieve, len(file.content), server_start_response])
+                average_data_rates.append([finish_recieve, len(file.content), start_requests])
                 total_files += 1; total_bytes += len(file.content)
                 now = time.time()
                 if now >= check_point:

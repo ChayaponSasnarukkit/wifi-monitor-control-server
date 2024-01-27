@@ -23,7 +23,8 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         # initial variable
         have_monitor_data = False
         print(target_ssid_radio)
-        target_ssid_radio = target_ssid_radio.value
+        if target_ssid_radio is not None:
+            target_ssid_radio = target_ssid_radio.value
         map_ip_to_alias_name = {}
         for ssid in parsed_node_configs:
             for control_ip in parsed_node_configs[ssid]["aps"]:
@@ -117,10 +118,11 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     }
             else:
                 for control_ip in parsed_node_configs[ssid]["clients"]:
+                    control_ap_ip = next(iter(parsed_node_configs[ssid]["aps"]))
                     config_client_request_data[control_ip] = {
                         "ssid": ssid,
-                        "radio": next(iter(parsed_node_configs[ssid]["aps"]))["radio"],
-                        "connect_to_target_ap": True,
+                        "radio": parsed_node_configs[ssid]["aps"][control_ap_ip]["radio"],
+                        "connect_to_target_ap": False,
                     }
         # keep sending request until all connected (this url wll wait for configured to apply because connected wifi is way more faster than config ap)
         config_map_url_data = {f"http://{control_ip}:8000/configure/client": config_client_request_data[control_ip] for control_ip in config_client_request_data}    
@@ -180,11 +182,13 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                     ],
                 }
             for control_ip in parsed_node_configs[ssid]["clients"]:
+                simulation_detail = parsed_node_configs[ssid]["clients"][control_ip].copy()
+                simulation_detail.pop("alias_name")
                 running_request_data[control_ip] = {
                     "alias_name": parsed_node_configs[ssid]["clients"][control_ip]["alias_name"],
                     "simulation_mode": "client",
                     "simulation_scenarios": [
-                        (parsed_node_configs[ssid]["clients"][control_ip]["alias_name"].copy()).pop("alias_name")
+                        simulation_detail
                     ],
                 }
         # open server at this device
@@ -204,6 +208,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
         # keep sending request until task scheduled on all client
         running_map_url_data = {f"http://{control_ip}:8000/simulation/run": running_request_data[control_ip] for control_ip in running_request_data}    
         print("\n\n\n\nksdjfdolsdj\n")
+        print(running_map_url_data)
         await keep_sending_post_request_until_all_ok(db_session, simulation, running_map_url_data, map_ip_to_alias_name)
         # polling until all completed
         have_monitor_data = True
