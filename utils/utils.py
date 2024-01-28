@@ -123,7 +123,7 @@ def _get_ip_address():
         ip_start = wifi_info.find('IPv4 Address') + 36
         ip_end = wifi_info.find('\n', ip_start)
         ip_address = wifi_info[ip_start:ip_end].strip()
-        if ip_address.find("Media disconnected") != -1:
+        if ip_address.find("Media disconnected") == -1:
             return ip_address
 
 def _get_control_ip_address():
