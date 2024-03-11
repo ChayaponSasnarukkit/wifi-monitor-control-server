@@ -20,13 +20,13 @@ def send_time_sync_task(event):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    my_event = threading.Event()
-    loop = asyncio.get_running_loop()
-    udp_socket_thread = loop.run_in_executor(None, send_time_sync_task, my_event)
+    # my_event = threading.Event()
+    # loop = asyncio.get_running_loop()
+    # udp_socket_thread = loop.run_in_executor(None, send_time_sync_task, my_event)
     web_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/web_application.py")
     file_simulation_process = await asyncio.create_subprocess_shell("python -u ./simulation/server/file_transfer.py")
     yield
-    my_event.set()
+    # my_event.set()
     web_simulation_process.terminate()
     file_simulation_process.terminate()
 

@@ -1,9 +1,25 @@
 from models.models import Scenario, Simulation, NodeConfiguration
-from models.schemas import NodeConfigRequest
+from models.schemas import NodeConfigRequest, KeepAliveRequest
 from utils.utils import parse_network_from_node_config
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, and_
+import time
+
+active_last_seen = {}
+
+async def recv_keep_alive_msg(scenario_id: int, request_body: KeepAliveRequest):
+    active_last_seen[request_body.control_ip] = time.time()
+    return {"message": "done"}
+    
+async def get_keep_alive_msg():
+    tmp = {}
+    for ip in active_last_seen:
+        if time.time() >= active_last_seen[ip] + 180:
+            pass
+        else:
+            tmp[ip] = active_last_seen[ip]
+    return tmp
 
 async def create_node_config(db_session: AsyncSession, scenario_id: int, request_body: NodeConfigRequest):
     # validate request
@@ -51,7 +67,13 @@ async def list_node_configs(db_session: AsyncSession, scenario_id: int, page_siz
         )
     ).all()
     
-    return node_configs
+    node_configs_list = [{k: v for k, v in node_config.__dict__.items() if k != '_sa_instance_state'} for node_config in node_configs]
+    for node_config in node_configs_list:
+        if node_config["control_ip_addr"] in active_last_seen and time.time() < active_last_seen[node_config["control_ip_addr"]] + 180:
+            node_config["status"] = "active"
+        else:
+            node_config["status"] = "inactive"
+    return node_configs_list
 
 async def update_node_config(db_session: AsyncSession, node_config_id: int, request_body: NodeConfigRequest):
     # validate request
@@ -84,7 +106,13 @@ async def get_node_config(db_session: AsyncSession, node_config_id: int):
     ).first()
     if not node_config:
         raise HTTPException(404, "node_config not found")
-    return node_config
+
+    node_config_dict = {k: v for k, v in node_config.__dict__.items() if k != '_sa_instance_state'}
+    if node_config_dict["control_ip_addr"] in active_last_seen and time.time() < active_last_seen[node_config_dict["control_ip_addr"]] + 180:
+            node_config_dict["status"] = "active"
+    else:
+        node_config_dict["status"] = "inactive"
+    return node_config_dict
 
 async def delete_node_config(db_session: AsyncSession, node_config_id: int):
     node_config = (

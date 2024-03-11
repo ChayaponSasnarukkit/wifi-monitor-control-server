@@ -357,7 +357,7 @@ async def simulation_tasks(lock: asyncio.Lock, db_session: AsyncSession, request
                 db_session.add(simulation)
                 await db_session.commit()
         if have_monitor_data:
-            simulation_data = {control_ip: {"Tx_power": None, "Signal": None, "Noise": None, "BitRate": None} for control_ip in running_request_data}
+            simulation_data = {control_ip: {"Tx_power": None, "Signal": None, "Noise": None, "BitRate": None, "ping_RTT": None} for control_ip in running_request_data}
             polling_urls = {f"http://{control_ip}:8000/simulation/monitor": None for control_ip in running_request_data}
             polling_results = await send_multiple_get_request(polling_urls, {})
             for result in polling_results:

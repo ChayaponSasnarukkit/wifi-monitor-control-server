@@ -108,3 +108,6 @@ class SimulationList(BaseModel):
     state: str
     class Config():
         from_attributes = True 
+        
+class KeepAliveRequest(BaseModel):
+    control_ip: str
